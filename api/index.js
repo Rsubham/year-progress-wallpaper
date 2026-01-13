@@ -1,8 +1,7 @@
-const { createCanvas } = require('canvas');
+const { createCanvas } = require('@napi-rs/canvas');
 
 export default function handler(req, res) {
-  // 1. Get dimensions from URL or default to iPhone 16 Pro
-  // Example usage: your-site.vercel.app/api?w=1206&h=2622
+  // 1. Get dimensions
   const width = parseInt(req.query.w) || 1206;
   const height = parseInt(req.query.h) || 2622;
   
@@ -21,10 +20,9 @@ export default function handler(req, res) {
   // 3. Date Math
   const now = new Date();
   const year = now.getFullYear();
-  const start = new Date(year, 0, 1); // Jan 1st
-  const end = new Date(year + 1, 0, 1); // Jan 1st next year
+  const start = new Date(year, 0, 1);
+  const end = new Date(year + 1, 0, 1);
   
-  // Calculate day of year (1-365/366)
   const oneDay = 1000 * 60 * 60 * 24;
   const dayOfYear = Math.floor((now - start) / oneDay) + 1;
   const totalDays = Math.floor((end - start) / oneDay);
@@ -51,6 +49,7 @@ export default function handler(req, res) {
     else ctx.fillStyle = conf.future;
 
     ctx.beginPath();
+    // @napi-rs/canvas works slightly differently with arcs, but this is standard 2D API
     ctx.arc(x + conf.dotSize/2, y + conf.dotSize/2, conf.dotSize/2, 0, Math.PI * 2);
     ctx.fill();
 
@@ -62,16 +61,16 @@ export default function handler(req, res) {
   }
 
   // 6. Draw Text
-  y += 100; // Space below grid
+  y += 100;
   ctx.fillStyle = conf.today;
-  ctx.font = '40px sans-serif'; // Standard system font
+  // Font loading is tricky in serverless, but simple generic fonts often work
+  ctx.font = '40px sans-serif'; 
   ctx.textAlign = 'center';
   ctx.fillText(`${daysLeft}d left • ${percent}%`, width / 2, y);
 
   // 7. Return Image
   const buffer = canvas.toBuffer('image/png');
   res.setHeader('Content-Type', 'image/png');
-  // Cache for 1 hour so it doesn't rebuild constantly
   res.setHeader('Cache-Control', 'public, max-age=3600'); 
   res.send(buffer);
 }
