@@ -79,7 +79,7 @@ export default function handler(req, res) {
   
   let startX = (width - gridWidth) / 2;
   // Offset set to 190px as requested
-  let startY = ((height - gridHeight) / 2) + 190;
+  let startY = ((height - gridHeight) / 2) + 180;
 
   let x = startX;
   let y = startY;
