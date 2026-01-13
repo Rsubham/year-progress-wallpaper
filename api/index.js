@@ -6,7 +6,7 @@ export default function handler(req, res) {
   const height = parseInt(req.query.h) || 2622;
   
   // 2. Arguments
-  // Get name from URL (e.g., ?name=R Subham), default to "R Subham" if missing
+  // Use ?name=YourName in URL. Defaults to "R Subham"
   const name = req.query.name || "R Subham";
 
   // 3. Visual Config
@@ -50,8 +50,7 @@ export default function handler(req, res) {
   const gridHeight = (totalRows * conf.dotSize) + ((totalRows - 1) * conf.gap);
   
   let startX = (width - gridWidth) / 2;
-  
-  // *** CHANGED: Offset reduced from 240 -> 210 ***
+  // Offset of 210px as requested
   let startY = ((height - gridHeight) / 2) + 210;
 
   let x = startX;
@@ -74,8 +73,9 @@ export default function handler(req, res) {
     }
   }
 
-  // 8. Draw Main Stats (352d left • 3%)
-  const textY = startY + gridHeight + 140; 
+  // 8. Draw Main Stats
+  // *** CHANGE: Reduced gap from 140 -> 110 to make room for bottom text ***
+  const textY = startY + gridHeight + 110; 
   ctx.font = '50px sans-serif'; 
   
   const text1 = `${daysLeft}d left`;
@@ -96,16 +96,16 @@ export default function handler(req, res) {
   ctx.fillStyle = "#71717a"; 
   ctx.fillText(text2, tx + w1, textY);
 
-  // 9. Draw Personalized Text (New Line)
-  // Format: "R Subham you have completed 3% of 2026. 352 days left"
+  // 9. Draw Personalized Text
+  // *** CHANGE: Color changed to Light Grey (#d4d4d8) so it stands out ***
+  // *** CHANGE: Gap reduced to 50px so it doesn't hit the bottom edge ***
   const subText = `${name} you have completed ${percent}% of ${year}. ${daysLeft} days left`;
   
-  ctx.font = '30px sans-serif'; // Smaller font for subtitle
-  ctx.fillStyle = "#52525b";    // Darker grey (Zinc-600) for subtlety
-  ctx.textAlign = 'center';     // Center aligned
+  ctx.font = '32px sans-serif'; 
+  ctx.fillStyle = "#d4d4d8";    // Light Grey (Zinc-300) - Much brighter
+  ctx.textAlign = 'center';
   
-  // Position it 60px below the main text
-  ctx.fillText(subText, width / 2, textY + 60);
+  ctx.fillText(subText, width / 2, textY + 50);
 
   // 10. Return Image
   const buffer = canvas.toBuffer('image/png');
