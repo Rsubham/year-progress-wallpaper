@@ -5,19 +5,18 @@ export default function handler(req, res) {
   const width = parseInt(req.query.w) || 1206;
   const height = parseInt(req.query.h) || 2622;
   
-  // 2. Visual Config (15 Columns, Bold Style)
+  // 2. Visual Config
   const conf = {
-    bg: "#18181b",          // Zinc-900
+    bg: "#000000",          // PURE BLACK
     past: "#ffffff",        // White
     today: "#f97316",       // Orange-500
     future: "#27272a",      // Zinc-800
-    cols: 15,               // EXACTLY 15 Columns
-    dotSize: 38,            // Adjusted for 15 cols
-    gap: 24                 // Balanced gap
+    cols: 15,               // 15 Columns
+    dotSize: 40,            // Increased slightly (was 38)
+    gap: 24                 // Gap kept tight
   };
 
-  // 3. Date Math (Force Indian Standard Time - UTC+5:30)
-  // This ensures the dot moves exactly at midnight in India
+  // 3. Date Math (Indian Standard Time)
   const nowUtc = new Date();
   const utcOffset = nowUtc.getTime() + (nowUtc.getTimezoneOffset() * 60000);
   const istOffset = 5.5 * 60 * 60 * 1000; 
@@ -41,16 +40,16 @@ export default function handler(req, res) {
   ctx.fillStyle = conf.bg;
   ctx.fillRect(0, 0, width, height);
 
-  // 5. Grid Calculations (Center it)
+  // 5. Grid Calculations
   const totalRows = Math.ceil(totalDays / conf.cols);
   const gridWidth = (conf.cols * conf.dotSize) + ((conf.cols - 1) * conf.gap);
   const gridHeight = (totalRows * conf.dotSize) + ((totalRows - 1) * conf.gap);
   
+  // Center Horizontally
   let startX = (width - gridWidth) / 2;
-  let startY = (height - gridHeight) / 2;
   
-  // Shift up slightly for visual balance
-  startY = startY - 40;
+  // Vertically: Center it, then push it DOWN by 240px to clear the clock
+  let startY = ((height - gridHeight) / 2) + 240;
 
   let x = startX;
   let y = startY;
@@ -72,14 +71,13 @@ export default function handler(req, res) {
     }
   }
 
-  // 7. Draw Text (Centered & Bold)
+  // 7. Draw Text
   const textY = startY + gridHeight + 140; 
   ctx.font = '50px sans-serif'; 
   
   const text1 = `${daysLeft}d left`;
   const text2 = ` • ${percent}%`;
   
-  // Measure width to center the group
   ctx.textAlign = 'left';
   const w1 = ctx.measureText(text1).width;
   const w2 = ctx.measureText(text2).width;
@@ -87,18 +85,17 @@ export default function handler(req, res) {
   
   let tx = (width - totalW) / 2;
   
-  // Draw Orange Part
+  // Orange Part
   ctx.fillStyle = conf.today; 
   ctx.fillText(text1, tx, textY);
   
-  // Draw Grey Part
+  // Grey Part
   ctx.fillStyle = "#71717a"; 
   ctx.fillText(text2, tx + w1, textY);
 
   // 8. Return Image
   const buffer = canvas.toBuffer('image/png');
   res.setHeader('Content-Type', 'image/png');
-  // Short cache so it updates instantly at midnight
   res.setHeader('Cache-Control', 'public, max-age=60'); 
   res.send(buffer);
 }
