@@ -1,26 +1,34 @@
-const { createCanvas } = require('@napi-rs/canvas');
+const { createCanvas, GlobalFonts } = require('@napi-rs/canvas');
+const path = require('path');
 
 export default function handler(req, res) {
-  // 1. Dimensions
+  // ---------------------------------------------------------
+  // 1. LOAD FONT (CRITICAL FIX)
+  // ---------------------------------------------------------
+  // We register the font file you uploaded so Vercel can see it
+  const fontPath = path.join(__dirname, 'font.ttf');
+  GlobalFonts.registerFromPath(fontPath, 'MyFont');
+
+  // ---------------------------------------------------------
+  // 2. SETUP & ARGS
+  // ---------------------------------------------------------
   const width = parseInt(req.query.w) || 1206;
   const height = parseInt(req.query.h) || 2622;
-  
-  // 2. Arguments
-  // Use ?name=YourName in URL. Defaults to "R Subham"
   const name = req.query.name || "R Subham";
 
-  // 3. Visual Config
   const conf = {
     bg: "#000000",          // Pure Black
     past: "#ffffff",        // White
-    today: "#f97316",       // Orange-500
-    future: "#27272a",      // Zinc-800
+    today: "#f97316",       // Orange
+    future: "#27272a",      // Dark Grey
     cols: 15,               // 15 Columns
     dotSize: 40,            // Dot Size
     gap: 24                 // Gap
   };
 
-  // 4. Date Math (IST)
+  // ---------------------------------------------------------
+  // 3. DATE MATH (IST)
+  // ---------------------------------------------------------
   const nowUtc = new Date();
   const utcOffset = nowUtc.getTime() + (nowUtc.getTimezoneOffset() * 60000);
   const istOffset = 5.5 * 60 * 60 * 1000; 
@@ -36,7 +44,9 @@ export default function handler(req, res) {
   const daysLeft = totalDays - dayOfYear;
   const percent = Math.round((dayOfYear / totalDays) * 100);
 
-  // 5. Setup Canvas
+  // ---------------------------------------------------------
+  // 4. DRAWING
+  // ---------------------------------------------------------
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
@@ -44,19 +54,19 @@ export default function handler(req, res) {
   ctx.fillStyle = conf.bg;
   ctx.fillRect(0, 0, width, height);
 
-  // 6. Grid Calculations
+  // Grid Stats
   const totalRows = Math.ceil(totalDays / conf.cols);
   const gridWidth = (conf.cols * conf.dotSize) + ((conf.cols - 1) * conf.gap);
   const gridHeight = (totalRows * conf.dotSize) + ((totalRows - 1) * conf.gap);
   
+  // Positioning (210px Offset)
   let startX = (width - gridWidth) / 2;
-  // Offset of 210px as requested
   let startY = ((height - gridHeight) / 2) + 210;
 
+  // Draw Dots
   let x = startX;
   let y = startY;
 
-  // 7. Draw Grid
   for (let i = 1; i <= totalDays; i++) {
     if (i < dayOfYear) ctx.fillStyle = conf.past;
     else if (i === dayOfYear) ctx.fillStyle = conf.today;
@@ -73,10 +83,13 @@ export default function handler(req, res) {
     }
   }
 
-  // 8. Draw Main Stats
-  // *** CHANGE: Reduced gap from 140 -> 110 to make room for bottom text ***
+  // ---------------------------------------------------------
+  // 5. DRAW TEXT (Now using 'MyFont')
+  // ---------------------------------------------------------
   const textY = startY + gridHeight + 110; 
-  ctx.font = '50px sans-serif'; 
+  
+  // CRITICAL: Use the font name we registered above
+  ctx.font = '50px MyFont'; 
   
   const text1 = `${daysLeft}d left`;
   const text2 = ` • ${percent}%`;
@@ -88,26 +101,24 @@ export default function handler(req, res) {
   
   let tx = (width - totalW) / 2;
   
-  // Orange Part
+  // Draw Part 1 (Orange)
   ctx.fillStyle = conf.today; 
   ctx.fillText(text1, tx, textY);
   
-  // Grey Part
+  // Draw Part 2 (Grey)
   ctx.fillStyle = "#71717a"; 
   ctx.fillText(text2, tx + w1, textY);
 
-  // 9. Draw Personalized Text
-  // *** CHANGE: Color changed to Light Grey (#d4d4d8) so it stands out ***
-  // *** CHANGE: Gap reduced to 50px so it doesn't hit the bottom edge ***
+  // Draw Personalized Text
   const subText = `${name} you have completed ${percent}% of ${year}. ${daysLeft} days left`;
   
-  ctx.font = '32px sans-serif'; 
-  ctx.fillStyle = "#d4d4d8";    // Light Grey (Zinc-300) - Much brighter
+  ctx.font = '32px MyFont'; // Use custom font here too
+  ctx.fillStyle = "#d4d4d8"; // Light Grey
   ctx.textAlign = 'center';
   
   ctx.fillText(subText, width / 2, textY + 50);
 
-  // 10. Return Image
+  // Output
   const buffer = canvas.toBuffer('image/png');
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Cache-Control', 'public, max-age=60'); 
