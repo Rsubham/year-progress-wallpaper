@@ -1,19 +1,19 @@
 const { createCanvas } = require('@napi-rs/canvas');
 
 export default function handler(req, res) {
-  // 1. Setup Dimensions (iPhone 16 Pro default)
+  // 1. Setup Dimensions (iPhone 16 Pro)
   const width = parseInt(req.query.w) || 1206;
   const height = parseInt(req.query.h) || 2622;
   
-  // 2. Configuration (Matched to your reference image)
+  // 2. Configuration (Refined for bold look)
   const conf = {
-    bg: "#18181b",          // Slightly lighter dark grey (Zinc-900)
+    bg: "#18181b",          // Zinc-900
     past: "#ffffff",        // White
-    today: "#f97316",       // Orange (Orange-500)
-    future: "#27272a",      // Dark Grey (Zinc-800)
-    cols: 13,               // Reference image has exactly 13 columns
-    dotSize: 34,            // Slightly larger dots
-    gap: 38                 // Wider gap for the airy look
+    today: "#f97316",       // Orange-500
+    future: "#27272a",      // Zinc-800
+    cols: 13,               // Fixed 13 columns
+    dotSize: 46,            // LARGE dots
+    gap: 26                 // Tighter gap
   };
 
   // 3. Date Math
@@ -24,7 +24,7 @@ export default function handler(req, res) {
   const oneDay = 1000 * 60 * 60 * 24;
   
   const dayOfYear = Math.floor((now - start) / oneDay) + 1;
-  const totalDays = Math.floor((end - start) / oneDay); // 365 or 366
+  const totalDays = Math.floor((end - start) / oneDay);
   const daysLeft = totalDays - dayOfYear;
   const percent = Math.round((dayOfYear / totalDays) * 100);
 
@@ -41,9 +41,12 @@ export default function handler(req, res) {
   const gridWidth = (conf.cols * conf.dotSize) + ((conf.cols - 1) * conf.gap);
   const gridHeight = (totalRows * conf.dotSize) + ((totalRows - 1) * conf.gap);
   
-  // Calculate Start Positions (Center the grid)
+  // Center Position
   let startX = (width - gridWidth) / 2;
   let startY = (height - gridHeight) / 2;
+
+  // Shift up slightly to make room for text at bottom
+  startY = startY - 40; 
 
   let x = startX;
   let y = startY;
@@ -58,7 +61,6 @@ export default function handler(req, res) {
     ctx.arc(x + conf.dotSize/2, y + conf.dotSize/2, conf.dotSize/2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Move to next position
     x += conf.dotSize + conf.gap;
     if (i % conf.cols === 0) {
       x = startX;
@@ -66,27 +68,29 @@ export default function handler(req, res) {
     }
   }
 
-  // 7. Draw Text (Split Colors)
-  const textY = startY + gridHeight + 120; // 120px below the grid
-  ctx.font = '40px sans-serif';
-  ctx.textAlign = 'center';
-
-  // We need to measure text to center two different colors
+  // 7. Draw Text (Bold & Large)
+  const textY = startY + gridHeight + 160; // Space below grid
+  ctx.font = '65px sans-serif'; // Much larger font
+  
+  // Measure Text for centering
   const text1 = `${daysLeft}d left`;
   const text2 = ` • ${percent}%`;
-  const totalTextWidth = ctx.measureText(text1 + text2).width;
   
-  // Draw Part 1 (Orange)
+  // We need total width to center the group
   ctx.textAlign = 'left';
-  let textStart = (width - totalTextWidth) / 2;
+  const w1 = ctx.measureText(text1).width;
+  const w2 = ctx.measureText(text2).width;
+  const totalTextW = w1 + w2;
   
-  ctx.fillStyle = conf.today; // Orange
+  let textStart = (width - totalTextW) / 2;
+  
+  // Draw Orange Part
+  ctx.fillStyle = conf.today; 
   ctx.fillText(text1, textStart, textY);
   
-  // Draw Part 2 (Grey)
-  const part1Width = ctx.measureText(text1).width;
-  ctx.fillStyle = "#71717a"; // Light Grey
-  ctx.fillText(text2, textStart + part1Width, textY);
+  // Draw Grey Part
+  ctx.fillStyle = "#71717a"; 
+  ctx.fillText(text2, textStart + w1, textY);
 
   // 8. Return Image
   const buffer = canvas.toBuffer('image/png');
