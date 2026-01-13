@@ -1,23 +1,28 @@
 const { createCanvas } = require('@napi-rs/canvas');
 
 export default function handler(req, res) {
-  // 1. Setup Dimensions (iPhone 16 Pro)
+  // 1. Dimensions (iPhone 16 Pro)
   const width = parseInt(req.query.w) || 1206;
   const height = parseInt(req.query.h) || 2622;
   
-  // 2. Configuration (Refined for bold look)
+  // 2. Visual Config (15 Columns, Bold Style)
   const conf = {
     bg: "#18181b",          // Zinc-900
     past: "#ffffff",        // White
     today: "#f97316",       // Orange-500
     future: "#27272a",      // Zinc-800
-    cols: 13,               // Fixed 13 columns
-    dotSize: 46,            // LARGE dots
-    gap: 26                 // Tighter gap
+    cols: 15,               // EXACTLY 15 Columns
+    dotSize: 38,            // Adjusted for 15 cols
+    gap: 24                 // Balanced gap
   };
 
-  // 3. Date Math
-  const now = new Date();
+  // 3. Date Math (Force Indian Standard Time - UTC+5:30)
+  // This ensures the dot moves exactly at midnight in India
+  const nowUtc = new Date();
+  const utcOffset = nowUtc.getTime() + (nowUtc.getTimezoneOffset() * 60000);
+  const istOffset = 5.5 * 60 * 60 * 1000; 
+  const now = new Date(utcOffset + istOffset);
+
   const year = now.getFullYear();
   const start = new Date(year, 0, 1);
   const end = new Date(year + 1, 0, 1);
@@ -32,21 +37,20 @@ export default function handler(req, res) {
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
-  // Draw Background
+  // Background
   ctx.fillStyle = conf.bg;
   ctx.fillRect(0, 0, width, height);
 
-  // 5. Calculate Grid Dimensions for Centering
+  // 5. Grid Calculations (Center it)
   const totalRows = Math.ceil(totalDays / conf.cols);
   const gridWidth = (conf.cols * conf.dotSize) + ((conf.cols - 1) * conf.gap);
   const gridHeight = (totalRows * conf.dotSize) + ((totalRows - 1) * conf.gap);
   
-  // Center Position
   let startX = (width - gridWidth) / 2;
   let startY = (height - gridHeight) / 2;
-
-  // Shift up slightly to make room for text at bottom
-  startY = startY - 40; 
+  
+  // Shift up slightly for visual balance
+  startY = startY - 40;
 
   let x = startX;
   let y = startY;
@@ -68,33 +72,33 @@ export default function handler(req, res) {
     }
   }
 
-  // 7. Draw Text (Bold & Large)
-  const textY = startY + gridHeight + 160; // Space below grid
-  ctx.font = '65px sans-serif'; // Much larger font
+  // 7. Draw Text (Centered & Bold)
+  const textY = startY + gridHeight + 140; 
+  ctx.font = '50px sans-serif'; 
   
-  // Measure Text for centering
   const text1 = `${daysLeft}d left`;
   const text2 = ` • ${percent}%`;
   
-  // We need total width to center the group
+  // Measure width to center the group
   ctx.textAlign = 'left';
   const w1 = ctx.measureText(text1).width;
   const w2 = ctx.measureText(text2).width;
-  const totalTextW = w1 + w2;
+  const totalW = w1 + w2;
   
-  let textStart = (width - totalTextW) / 2;
+  let tx = (width - totalW) / 2;
   
   // Draw Orange Part
   ctx.fillStyle = conf.today; 
-  ctx.fillText(text1, textStart, textY);
+  ctx.fillText(text1, tx, textY);
   
   // Draw Grey Part
   ctx.fillStyle = "#71717a"; 
-  ctx.fillText(text2, textStart + w1, textY);
+  ctx.fillText(text2, tx + w1, textY);
 
   // 8. Return Image
   const buffer = canvas.toBuffer('image/png');
   res.setHeader('Content-Type', 'image/png');
-  res.setHeader('Cache-Control', 'public, max-age=3600'); 
+  // Short cache so it updates instantly at midnight
+  res.setHeader('Cache-Control', 'public, max-age=60'); 
   res.send(buffer);
 }
