@@ -33,7 +33,7 @@ export default function handler(req, res) {
   // ---------------------------------------------------------
   const width = parseInt(req.query.w) || 1206;
   const height = parseInt(req.query.h) || 2622;
-  const name = req.query.name || "R Subham";
+  const name = req.query.name || "Swapna";
 
   const conf = {
     bg: "#000000",          // Pure Black
